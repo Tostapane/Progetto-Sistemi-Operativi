@@ -1,2 +1,7 @@
-# Progetto-Sistemi-Operativi
-Repo per il progetto di Sistemi Operativi UniBo 2025/2026
+# MultiPandOS
+
+To compile the project:
+```bash
+cmake -B build
+cmake --build build
+```
