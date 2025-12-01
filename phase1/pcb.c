@@ -49,6 +49,9 @@ pcb_t* allocPcb() {
   }
 }
 
+
+// tentativi lasciati mooolto incompleti
+
 // inizializza una variabile che sarà la testa di una nuova coda di un pcb
 void mkEmptyProcQ(struct list_head* head) {
   INIT_LIST_HEAD(head);
