@@ -103,6 +103,7 @@ pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
 /* Return TRUE if the PCB pointed to by p has no
 children. Return FALSE otherwise. */
 int emptyChild(pcb_t* p) {
+  return p -> p_child.next == NULL;
 }
 
 /* Make the PCB pointed to by p
