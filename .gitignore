@@ -57,3 +57,5 @@ dkms.conf
 # Cartelle
 /.vscode/
 /build/
+*.uriscv
+*.sh
