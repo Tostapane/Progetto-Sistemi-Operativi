@@ -58,4 +58,3 @@ dkms.conf
 /.vscode/
 /build/
 *.uriscv
-*.sh
