@@ -114,19 +114,20 @@ void insertProcQ(struct list_head *head, pcb_t *p)
 
   /*
    * Caso limite: se l'elemento che sto cercando di inserire è esattamente quello
-   * dalla priorità più bassa, allora aggiungo l'elemento in coda
+   * dalla priorità più bassa, allora aggiungo l'elemento in fondo alla coda
    */
   list_add_tail(&(p->p_list), head);
 }
 
 /* Return a pointer to the first
-* PCB (i.e. the PCB with max priority) from the process queue whose head is
+ * PCB (i.e. the PCB with max priority) from the process queue whose head is
  * pointed to by head. Do not remove this PCB from the process queue. Return
  * NULL if the process queue is empty.*/
 pcb_t *headProcQ(struct list_head *head)
 {
   if (head == NULL || emptyProcQ(head))
     return NULL;
+  // ritorno il primo elemento senza rimuoverlo
   return container_of(head->next, pcb_t, p_list);
 }
 
@@ -139,6 +140,7 @@ pcb_t *removeProcQ(struct list_head *head)
   if (head == NULL || emptyProcQ(head))
     return NULL;
 
+  // rimuovo e ritorno il primo elemento
   pcb_t *item = container_of(head->next, pcb_t, p_list);
   list_del(&(item->p_list));
   return item;
@@ -150,7 +152,7 @@ pcb_t *removeProcQ(struct list_head *head)
  * any element of the process queue. */
 pcb_t *outProcQ(struct list_head *head, pcb_t *p)
 {
-  if (head == NULL || p== NULL)
+  if (head == NULL || p == NULL)
     return NULL;
 
   /*
@@ -177,50 +179,49 @@ int emptyChild(pcb_t *p)
 {
   if (p == NULL)
     return FALSE;
-  return list_empty(&(p -> p_child));
+  return list_empty(&(p->p_child));
 }
 
 /* Make the PCB pointed to by p
  * a child of the PCB pointed to by prnt.*/
-void insertChild(pcb_t *prnt, pcb_t *p) 
+void insertChild(pcb_t *prnt, pcb_t *p)
 {
-     if (prnt == NULL || p == NULL || p -> p_parent != NULL)
-          return;
-     // aggiorno il puntatore di p al parent
-     p -> p_parent = prnt;
-     
-     // aggiungo p nella lista dei figli di parent
-     list_add_tail(&p -> p_sib, &prnt -> p_child);
+  if (prnt == NULL || p == NULL || p->p_parent != NULL)
+    return;
+  // aggiorno il puntatore di p al parent
+  p->p_parent = prnt;
 
+  // aggiungo p nella lista dei figli di parent
+  list_add_tail(&p->p_sib, &prnt->p_child);
 }
 
 /* Make the first child of the PCB pointed to by
  * p no longer a child of p. Return NULL if initially there were no children of
  * p. Otherwise, return a pointer to this removed first child PCB.*/
-pcb_t *removeChild(pcb_t *p) 
+pcb_t *removeChild(pcb_t *p)
 {
-     if (p == NULL || list_empty(&p -> p_child)) 
-          return NULL;
-     // accedo al figlio da rimuovere
-     pcb_t *item = container_of(p -> p_child.next, pcb_t, p_sib);
+  if (p == NULL || list_empty(&p->p_child))
+    return NULL;
+  // accedo al figlio da rimuovere
+  pcb_t *item = container_of(p->p_child.next, pcb_t, p_sib);
 
-     list_del(p -> p_child.next);
-     item -> p_parent = NULL;
+  list_del(p->p_child.next);
+  item->p_parent = NULL;
 
-     return item;
+  return item;
 }
 
 /* Make the PCB pointed to by p no longer the
  * child of its parent. If the PCB pointed to by p has no parent, return NULL;
  * otherwise, return p. Note that the element pointed to by p could be in an
  * arbitrary position (i.e. not be the first child of its parent).*/
-pcb_t *outChild(pcb_t *p) 
+pcb_t *outChild(pcb_t *p)
 {
-     if (p == NULL || p -> p_parent == NULL)
-          return NULL;
-     // rimozione del figlio dalla lista dei fratelli
-     list_del(&p -> p_sib);
-     p -> p_parent = NULL;
+  if (p == NULL || p->p_parent == NULL)
+    return NULL;
+  // rimozione del figlio dalla lista dei fratelli
+  list_del(&p->p_sib);
+  p->p_parent = NULL;
 
-     return p;
+  return p;
 }
