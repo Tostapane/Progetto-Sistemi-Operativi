@@ -4,7 +4,7 @@ static struct list_head pcbFree_h;
 static pcb_t pcbFree_table[MAXPROC];
 static int next_pid = 1;
 
-/* * Initialize the pcbFree list to contain all the elements of the
+/* Initialize the pcbFree list to contain all the elements of the
  * static array of MAXPROC PCBs. This method will be called only once during
  * data structure initialization. 
  */
@@ -16,13 +16,13 @@ void initPcbs() {
   }
 }
 
-/* * Insert the element pointed to by p onto the pcbFree list.
+/* Insert the element pointed to by p onto the pcbFree list.
  */
 void freePcb(pcb_t *p) {
   if (p != NULL) list_add(&p->p_list, &pcbFree_h);
 }
 
-/* * Return NULL if the pcbFree list is empty. Otherwise, remove an element from
+/* Return NULL if the pcbFree list is empty. Otherwise, remove an element from
  * the pcbFree list, provide initial values for ALL of the PCBs fields (i.e.
  * NULL and/or 0), except for p_pid which is incremented each time, and then
  * return a pointer to the removed element. PCBs get reused, so it is important
@@ -32,25 +32,25 @@ pcb_t *allocPcb() {
   if (list_empty(&pcbFree_h))
     return NULL;
   else {
-    // Extract the PCB pointed to by the node we are removing
+    // extract the PCB pointed to by the node we are removing
     pcb_t *p = container_of(pcbFree_h.next, pcb_t, p_list);
 
-    // Remove the element from the pcbFree_h list
+    // remove the element from the pcbFree_h list
     list_del(pcbFree_h.next);
 
-    // Initialize list heads
+    // initialize list heads
     INIT_LIST_HEAD(&(p->p_list));
     INIT_LIST_HEAD(&(p->p_child));
     INIT_LIST_HEAD(&(p->p_sib));
 
-    // Reset pointers and scalar fields
+    // reset pointers and scalar fields
     p->p_parent = NULL;
     p->p_time = 0;
     p->p_semAdd = NULL;
     p->p_supportStruct = NULL;
     p->p_prio = 0;
 
-    // Reset processor state fields
+    // reset processor state fields
     p->p_s.cause = 0;
     p->p_s.entry_hi = 0;
     p->p_s.gpr[0] = 0;
@@ -58,21 +58,18 @@ pcb_t *allocPcb() {
     p->p_s.pc_epc = 0;
     p->p_s.status = 0;
 
-    // Assign a new PID
-    p->p_pid = next_pid++;
-
     return p;
   }
 }
 
-/* * This method is used to initialize a variable to be head pointer 
+/* This method is used to initialize a variable to be head pointer 
  * to a process queue. 
  */
 void mkEmptyProcQ(struct list_head *head) {
   if (head != NULL) INIT_LIST_HEAD(head);
 }
 
-/* * Return TRUE if the queue whose head is pointed to by head is empty. 
+/* Return TRUE if the queue whose head is pointed to by head is empty. 
  * Return FALSE otherwise.
  */
 int emptyProcQ(struct list_head *head) {
@@ -80,7 +77,7 @@ int emptyProcQ(struct list_head *head) {
   return list_empty(head);
 }
 
-/* * Insert the PCB pointed by p into the process queue whose head pointer is
+/* Insert the PCB pointed by p into the process queue whose head pointer is
  * pointed to by head. The list must be ordered by priority (descending). 
  * In case of equal priority, the new PCB must be inserted after the last PCB 
  * with this priority (FIFO).
