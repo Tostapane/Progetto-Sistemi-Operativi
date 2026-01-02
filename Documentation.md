@@ -1,47 +1,85 @@
-# PandOSsh Phase 1 Documentation
+# PandOSsh Phase 1: Level 2 Documentation
 
-## 1. Introduction
-This documentation describes the implementation of Phase 1 (Level 2) of the PandOSsh operating system. This level implements the Queue Manager, which is responsible for managing Process Control Blocks (PCBs) and the Active Semaphore List (ASL). The implementation creates the foundation for process management and synchronization used in subsequent levels.
+## 1. Project Overview
 
-## 2. Implementation Details
+Phase 1 implements the **Queue Managers** for the PandOSsh operating system. This layer manages the active entities of the OS, defined as processes, using data structures called Process Control Blocks (PCBs). It encompasses two primary modules: the Process Queue Manager and the Active Semaphore List (ASL).
 
-### 2.1 Process Control Blocks (PCB) - `pcb.c`
-The PCB module manages the allocation, deallocation, and organization of process control blocks.
+## 2. Core Data Structures
 
-* **PCB Structure**: Defined in `pcb.h` and `types.h`, the `pcb_t` structure utilizes the `list_head` structure from `listx.h` (Linux Kernel style lists) to manage queues.
-* **Free List (`pcbFree_h`)**: A static list maintaining unused PCBs. `allocPcb` retrieves a node from this list, while `freePcb` returns one.
-* **Priority Queues**: The `insertProcQ` function maintains queues ordered by priority (descending). Crucially, to satisfy the requirement of **FIFO behavior for equal priorities**, the insertion logic scans the list and inserts the new element *before* the first element with a strictly lower priority. If the priority is equal, it continues scanning, effectively placing the new element after all existing elements of the same priority.
-* **Process Trees**: The module implements a tree structure where each PCB maintains a list of children (`p_child`) and a sibling link (`p_sib`). `p_child` acts as a sentinel for the list of siblings.
+### Process Control Block (`pcb_t`)
 
-### 2.2 Active Semaphore List (ASL) - `asl.c`
-The ASL module implements a list of active semaphores, where each semaphore descriptor (`semd_t`) maintains a queue of blocked processes.
+Represents a process, allocated from a generic pool.
 
-* **Organization**: The ASL (`semd_h`) is a linked list sorted by the semaphore key (physical address `s_key`) in ascending order. This optimization allows search functions (`getSemd`) to abort early if the key is exceeded.
-* **Dynamic Allocation**: Semaphore descriptors are allocated from a static free list (`semdFree_h`) only when a semaphore becomes active (i.e., has at least one blocked process).
-* **Management**:
-    * `insertBlocked`: Searches for the semaphore. If not found, allocates a new `semd_t` and inserts it into the sorted ASL. The process is then added to the semaphore's process queue.
-    * `removeBlocked` / `outBlocked`: Removes processes from the semaphore's queue. If the queue becomes empty, the `semd_t` descriptor is removed from the ASL and returned to the free list to save resources.
+- **Queue Fields:** `p_list` is used for process queues and the `pcbFree` list.
+- **Tree Fields:** `p_parent`, `p_child`, and `p_sib` manage process hierarchies.
+- **Status Info:** Contains processor state (`p_s`), accumulated time (`p_time`), priority (`p_prio`), and process ID (`p_pid`).
+- **Synchronization:** `p_semAdd` points to the semaphore on which a process is blocked.
 
-## 3. Design Choices & Algorithms
+#### Semaphore Descriptor (`semd_t`)
 
-* **List Implementation**: We utilized the provided `listx.h` which mimics the Linux Kernel circular doubly-linked lists. This avoids manual pointer manipulation for `next` and `prev` fields, relying instead on `list_add`, `list_del`, and `container_of` macros.
-* **Priority Insertion Algorithm**:
-    To ensure O(N) insertion with correct ordering:
-    ```c
-    list_for_each(it, head) {
-        if (p->p_prio > item->p_prio) {
-            list_add_tail(&p->p_list, it); // Insert BEFORE current item
-            return;
-        }
-    }
-    list_add_tail(&p->p_list, head); // Insert at TAIL if lowest/equal priority
-    ```
-    This logic guarantees that among processes with equal priority, the one inserted first remains ahead of the one inserted later.
+Represents a semaphore that currently has blocked processes.
 
-* **ASL Sorting**: The ASL is kept sorted to improve performance on `insertBlocked` operations, reducing the average search time compared to an unsorted list, especially when many semaphores are active.
+- **Key:** `s_key` stores the physical address of the semaphore.
+- **Queue:** `s_procq` is the list of PCBs blocked on this semaphore.
+- **Link:** `s_link` links the descriptor within the ASL or free list.
 
-## 4. File Structure
-* `phase1/pcb.c`: Implementation of PCB queues and trees.
-* `phase1/asl.c`: Implementation of Semaphore management.
-* `headers/`: Contains `pcb.h`, `asl.h`, `types.h`, `listx.h`, `const.h`.
-* `klog.c`: Debugging utility.
+### List Implementation
+
+The project utilizes generic, type-oblivious doubly linked lists (`struct list_head`) adapted from the Linux kernel.
+
+- Lists use a sentinel element to link the first and last nodes.
+- Data is accessed using the `container_of` macro.
+
+---
+
+### 3. Module: Process Queue Manager (`pcb.c`)
+
+This module manages the allocation, organization, and hierarchy of PCBs.
+
+#### Allocation and Deallocation
+
+- **Storage:** A static array `pcbTable` of size `MAXPROC` (20) provides the memory pool.
+- **Initialization (`initPcbs`):** Populates the `pcbFree` list with all elements from `pcbTable`.
+- **Allocation (`allocPcb`):** Removes a PCB from the free list and resets all fields to `NULL` or `0`, except `p_pid` which is incremented. Returns `NULL` if the list is empty.
+- **Deallocation (`freePcb`):** Returns a specific PCB to the `pcbFree` list.
+
+#### Queue Maintenance
+
+Generic operations for manipulating doubly linked lists of PCBs.
+
+- **Initialization (`mkEmptyProcQ`):** Initializes a variable to be a head pointer to a process queue.
+- **Insertion (`insertProcQ`):** Inserts a PCB into a queue ordered by priority (descending). If priorities are equal, it uses FIFO ordering (inserted after the last PCB with that priority).
+- **Removal (`removeProcQ`, `outProcQ`):** `removeProcQ` removes the head (highest priority). `outProcQ` removes a specific PCB regardless of position.
+- **Access (`headProcQ`):** Returns the highest priority PCB without removal.
+
+#### Tree Maintenance
+
+Manages parent-child relationships where a parent has a list of children (`p_child`), and children are linked via siblings (`p_sib`).
+
+- **Status (`emptyChild`):** Returns `TRUE` if the PCB has no children, `FALSE` otherwise.
+- **Insertion (`insertChild`):** Adds a PCB as a child of a specified parent.
+- **Removal (`removeChild`, `outChild`):** `removeChild` detaches the first child. `outChild` detaches a specific PCB from its parent.
+
+---
+
+### 4. Module: Active Semaphore List (`asl.c`)
+
+This module manages semaphores that have at least one blocked process.
+
+#### Logic and Storage
+
+- **Active Definition:** A semaphore is "active" only if its process queue is not empty. Inactive semaphores do not have descriptors in the ASL.
+- **Storage:** Uses a static array `semd_table` and a free list `semdFree`.
+- **Sorted List:** The ASL (`semd_h`) is maintained in sorted order to support efficient searching and insertion "at the appropriate position".
+
+#### Functions
+
+- **`initASL()`:** Initializes the `semdFree` list to contain all elements of the `semd_table` array. This is called once during data structure initialization.
+- **`getSemd(key)` (Private Helper):** Searches the ASL for a descriptor with the matching `key`. It utilizes the sorted nature of the list to return `NULL` early if the search key exceeds the current node's key.
+- **`insertBlocked(semAdd, p)`:** Inserts a PCB into the queue of the semaphore at `semAdd`.
+  - If the semaphore is not in the ASL, it allocates a new `semd_t` from the free list and inserts it into the ASL.
+  - Returns `TRUE` if allocation fails (no free descriptors), `FALSE` otherwise.
+- **`removeBlocked(semAdd)`:** Removes the head PCB from the specified semaphore's queue.
+  - If the queue becomes empty, the `semd_t` is removed from the ASL and returned to the free list.
+- **`outBlocked(p)`:** Removes a specific PCB from its semaphore's queue. Handles descriptor deallocation if the queue empties.
+- **`headBlocked(semAdd)`:** Returns the head PCB of the blocked queue without removal.

@@ -6,8 +6,7 @@ static int next_pid = 1;
 
 /* Initialize the pcbFree list to contain all the elements of the
  * static array of MAXPROC PCBs. This method will be called only once during
- * data structure initialization. 
- */
+ * data structure initialization. */
 void initPcbs() {
   INIT_LIST_HEAD(&pcbFree_h);
 
@@ -16,8 +15,7 @@ void initPcbs() {
   }
 }
 
-/* Insert the element pointed to by p onto the pcbFree list.
- */
+/* Insert the element pointed to by p onto the pcbFree list. */
 void freePcb(pcb_t *p) {
   if (p != NULL) list_add(&p->p_list, &pcbFree_h);
 }
@@ -26,8 +24,7 @@ void freePcb(pcb_t *p) {
  * the pcbFree list, provide initial values for ALL of the PCBs fields (i.e.
  * NULL and/or 0), except for p_pid which is incremented each time, and then
  * return a pointer to the removed element. PCBs get reused, so it is important
- * that no previous value persist in a PCB when it gets reallocated.
- */
+ * that no previous value persist in a PCB when it gets reallocated. */
 pcb_t *allocPcb() {
   if (list_empty(&pcbFree_h))
     return NULL;
@@ -63,15 +60,13 @@ pcb_t *allocPcb() {
 }
 
 /* This method is used to initialize a variable to be head pointer 
- * to a process queue. 
- */
+ * to a process queue. */
 void mkEmptyProcQ(struct list_head *head) {
   if (head != NULL) INIT_LIST_HEAD(head);
 }
 
 /* Return TRUE if the queue whose head is pointed to by head is empty. 
- * Return FALSE otherwise.
- */
+ * Return FALSE otherwise. */
 int emptyProcQ(struct list_head *head) {
   if (head == NULL) return FALSE;
   return list_empty(head);
@@ -80,16 +75,13 @@ int emptyProcQ(struct list_head *head) {
 /* Insert the PCB pointed by p into the process queue whose head pointer is
  * pointed to by head. The list must be ordered by priority (descending). 
  * In case of equal priority, the new PCB must be inserted after the last PCB 
- * with this priority (FIFO).
- */
+ * with this priority (FIFO). */
 void insertProcQ(struct list_head *head, pcb_t *p) {
   if (head == NULL || p == NULL) return;
 
-  /*
-   * Iterate over the list and insert the element as soon as we find
+  /* Iterate over the list and insert the element as soon as we find
    * an item with lower priority than the one being inserted.
-   * list_add_tail inserts *before* the current iterator 'it'.
-   */
+   * list_add_tail inserts *before* the current iterator 'it'. */
   struct list_head *it;
   list_for_each(it, head) {
     pcb_t *item = container_of(it, pcb_t, p_list);
@@ -99,18 +91,15 @@ void insertProcQ(struct list_head *head, pcb_t *p) {
     }
   }
 
-  /*
-   * If we reach here, the element has the lowest priority (or equal to the last),
-   * so we add it to the tail of the list.
-   */
+  /* If we reach here, the element has the lowest priority (or equal to the last),
+   * so we add it to the tail of the list. */
   list_add_tail(&(p->p_list), head);
 }
 
-/* * Return a pointer to the first PCB (i.e. the PCB with max priority) 
+/* Return a pointer to the first PCB (i.e. the PCB with max priority) 
  * from the process queue whose head is pointed to by head. 
  * Do not remove this PCB from the process queue. 
- * Return NULL if the process queue is empty.
- */
+ * Return NULL if the process queue is empty. */
 pcb_t *headProcQ(struct list_head *head) {
   if (head == NULL || emptyProcQ(head)) return NULL;
 
@@ -118,11 +107,10 @@ pcb_t *headProcQ(struct list_head *head) {
   return container_of(head->next, pcb_t, p_list);
 }
 
-/* * Return a pointer to the first PCB (i.e. the PCB with max priority) 
+/* Return a pointer to the first PCB (i.e. the PCB with max priority) 
  * from the process queue whose head is pointed to by head. 
  * Return NULL if the process queue was initially empty; otherwise
- * return the pointer to the removed element.
- */
+ * return the pointer to the removed element. */
 pcb_t *removeProcQ(struct list_head *head) {
   if (head == NULL || emptyProcQ(head)) return NULL;
 
@@ -132,10 +120,9 @@ pcb_t *removeProcQ(struct list_head *head) {
   return item;
 }
 
-/* * Remove the PCB pointed to by p from the process queue whose head pointer is
+/* Remove the PCB pointed to by p from the process queue whose head pointer is
  * pointed to by head. If the desired entry is not in the indicated queue (an
- * error condition), return NULL; otherwise, return p. 
- */
+ * error condition), return NULL; otherwise, return p. */
 pcb_t *outProcQ(struct list_head *head, pcb_t *p) {
   if (head == NULL || p == NULL) return NULL;
 
@@ -153,16 +140,14 @@ pcb_t *outProcQ(struct list_head *head, pcb_t *p) {
   return NULL;
 }
 
-/* * Return TRUE if the PCB pointed to by p has no children. 
- * Return FALSE otherwise. 
- */
+/* Return TRUE if the PCB pointed to by p has no children. 
+ * Return FALSE otherwise. */
 int emptyChild(pcb_t *p) {
   if (p == NULL) return FALSE;
   return list_empty(&(p->p_child));
 }
 
-/* * Make the PCB pointed to by p a child of the PCB pointed to by prnt.
- */
+/* Make the PCB pointed to by p a child of the PCB pointed to by prnt. */
 void insertChild(pcb_t *prnt, pcb_t *p) {
   if (prnt == NULL || p == NULL || p->p_parent != NULL) return;
 
@@ -173,10 +158,9 @@ void insertChild(pcb_t *prnt, pcb_t *p) {
   list_add_tail(&p->p_sib, &prnt->p_child);
 }
 
-/* * Make the first child of the PCB pointed to by p no longer a child of p. 
+/* Make the first child of the PCB pointed to by p no longer a child of p. 
  * Return NULL if initially there were no children of p. 
- * Otherwise, return a pointer to this removed first child PCB.
- */
+ * Otherwise, return a pointer to this removed first child PCB. */
 pcb_t *removeChild(pcb_t *p) {
   if (p == NULL || list_empty(&p->p_child)) return NULL;
 
@@ -189,11 +173,10 @@ pcb_t *removeChild(pcb_t *p) {
   return item;
 }
 
-/* * Make the PCB pointed to by p no longer the child of its parent. 
+/* Make the PCB pointed to by p no longer the child of its parent. 
  * If the PCB pointed to by p has no parent, return NULL;
  * otherwise, return p. Note that the element pointed to by p could be in an
- * arbitrary position (i.e. not be the first child of its parent).
- */
+ * arbitrary position (i.e. not be the first child of its parent). */
 pcb_t *outChild(pcb_t *p) {
   if (p == NULL || p->p_parent == NULL) return NULL;
 
