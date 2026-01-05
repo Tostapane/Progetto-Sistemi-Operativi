@@ -2,7 +2,6 @@
 
 static struct list_head pcbFree_h;
 static pcb_t pcbFree_table[MAXPROC];
-static int next_pid = 1;
 
 /* Initialize the pcbFree list to contain all the elements of the
  * static array of MAXPROC PCBs. This method will be called only once during
@@ -25,6 +24,7 @@ void freePcb(pcb_t *p) {
  * NULL and/or 0), except for p_pid which is incremented each time, and then
  * return a pointer to the removed element. PCBs get reused, so it is important
  * that no previous value persist in a PCB when it gets reallocated. */
+static unsigned int next_pid = 0;
 pcb_t *allocPcb() {
   if (list_empty(&pcbFree_h))
     return NULL;
@@ -50,11 +50,15 @@ pcb_t *allocPcb() {
     // reset processor state fields
     p->p_s.cause = 0;
     p->p_s.entry_hi = 0;
-    p->p_s.gpr[0] = 0;
+    for (int i = 0; i < 32; i++) {
+        p->p_s.gpr[i] = 0;
+    }
     p->p_s.mie = 0;
     p->p_s.pc_epc = 0;
     p->p_s.status = 0;
 
+    p -> p_pid = next_pid;
+    next_pid++;
     return p;
   }
 }
