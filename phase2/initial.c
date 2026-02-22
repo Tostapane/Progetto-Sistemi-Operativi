@@ -13,16 +13,16 @@ unsigned int processCount;
 unsigned int softBlockCount;
 
 // a queue of PCBs that are in "ready" state 
-struct list_head *readyQueue;
+struct list_head readyQueue;
 
 // the current executing process
 pcb_t *currProc;
 
 // semaphore for external (sub)device 
-semd_t *subDevice;
+unsigned int subDevice[NRSEMAPHORES];
 
 // semaphore to support the pseudo clock
-semd_t *pseudoClock;
+unsigned int pseudoClock;
 
 extern void test();
 
@@ -34,7 +34,7 @@ extern void test();
  * indirzzi fisici, e un flag di stato su di essi che indica se la traduzione è 
  * valida o scrivibile per quell'indirizzo.
  *
- * Interagisce con la CPU inviandole indirizzi fisici quando li richiede 
+ * Interagisce con la CPU invi~/Desktop/uni/sistemiOperativi/progetto/mio andole indirizzi fisici quando li richiede 
  * Interagisce con il sistema operativo (nucleus/kernel) quando c'è un TLB miss, 
  * il quale interviene per aggiornarla con i dati corretti che recupera dalla RAM.
  *
@@ -65,7 +65,7 @@ int main(){
 
   // this code will be replaced when the support level is implemented
   // indirizzo della funzione che deve gestire i TLB miss 
-  passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler();
+  passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
 
   /* Assegnazione di un area di memoria sicura e privata (dedicata al KERNEL)
    * contenente lo stack dedicato alla gestione del TLB-Refill.
@@ -107,12 +107,10 @@ int main(){
 // 2.4  
   processCount = 0;
   softBlockCount = 0;
-  mkEmptyProcQ(readyQueue);
+  mkEmptyProcQ(&readyQueue);
   currProc = NULL;
-  subDevice->s_key = 0;
-  pseudoClock->s_key = 0;
-
-
+  for (int i = 0; i < NRSEMAPHORES; i++) subDevice[i] = 0;
+  pseudoClock = 0;
 
 
 // 2.5
@@ -123,7 +121,7 @@ int main(){
   // alloca un nuovo processo 
   pcb_t *proc = allocPcb();
   // inserisce il processo nella readyQueue
-  insertProcQ(readyQueue, proc);
+  insertProcQ(&readyQueue, proc);
 
   processCount++;
 
@@ -153,3 +151,5 @@ int main(){
   scheduler();
 
 }
+
+
