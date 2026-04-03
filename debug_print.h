@@ -13,7 +13,7 @@ static inline void debug_print(char *str) { /*
   }  //*/
 }
 
-static inline void debug_print_hex(unsigned int num) { /*
+static inline void debug_print_hex(unsigned int num) {
   const char digits[] = "0123456789ABCDEF";
   char buf[9];
   buf[8] = '\0';
@@ -21,7 +21,7 @@ static inline void debug_print_hex(unsigned int num) { /*
     buf[i] = digits[num % 16];
     num /= 16;
   }
-  debug_print(buf); //*/
+  debug_print(buf);
 }
 
 #endif
