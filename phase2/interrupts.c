@@ -84,58 +84,30 @@ void deviceInterrupt(unsigned int intlineNo) {
   }
   volatile memaddr devAddrBase =
       START_ADDR + ((intlineNo - 3) * 0x80) + (DevNo * 0x10);
-  /*
-    volatile devreg_t *device_register = (volatile devreg_t *)devAddrBase;
-    unsigned int status;
-    unsigned int semNum = -1;
-
-    if (word != 4) {
-      status = device_register->dtp.status;
-      device_register->dtp.command = ACK;
-      semNum = (intlineNo - 3) * 8 + DevNo;
-    } else {
-      unsigned int tran_status = device_register->term.transm_status;
-      unsigned int recv_status = device_register->term.recv_status;
-      // debug_print_hex(tran_status);
-      // debug_print_hex(recv_status);
-      if (tran_status != READY && tran_status != BUSY &&
-          tran_status != UNINSTALLED) {
-        status = tran_status;
-        device_register->term.transm_command = ACK;
-        semNum = 32 + DevNo; // Transmission
-      } else if (recv_status != READY && recv_status != BUSY &&
-                 recv_status != UNINSTALLED) {
-        status = recv_status;
-        device_register->term.recv_command = ACK;
-        semNum = 32 + DevNo + 8; // Receipt
-      }
-    }*/
-
-  volatile memaddr *devAddrBase_ptr = (volatile memaddr *)devAddrBase;
+  // /*
+  volatile devreg_t *device_register = (volatile devreg_t *)devAddrBase;
   unsigned int status;
   unsigned int semNum = -1;
+
   if (word != 4) {
-    // NON terminal
-    status = devAddrBase_ptr[STATUS];
-    devAddrBase_ptr[COMMAND] = ACK;
+    status = device_register->dtp.status;
+    device_register->dtp.command = ACK;
     semNum = (intlineNo - 3) * 8 + DevNo;
   } else {
-    // terminal
-    unsigned int tran_status = devAddrBase_ptr[TRANSTATUS];
-    unsigned int recv_status = devAddrBase_ptr[RECVSTATUS];
-    if (tran_status != READY && tran_status != BUSY &&
-        tran_status != UNINSTALLED) {
+    unsigned int tran_status = device_register->term.transm_status;
+    unsigned int recv_status = device_register->term.recv_status;
+    // debug_print_hex(tran_status);
+    // debug_print_hex(recv_status);
+    if ((tran_status & 0xFF) == 5) {
       status = tran_status;
-      devAddrBase_ptr[TRANCOMMAND] = ACK;
-      semNum = 32 + DevNo;
-    } else if (recv_status != READY && recv_status != BUSY &&
-               recv_status != UNINSTALLED) {
+      device_register->term.transm_command = ACK;
+      semNum = 32 + DevNo; // Transmission
+    } else if ((recv_status & 0xFF)) {
       status = recv_status;
-      devAddrBase_ptr[RECVCOMMAND] = ACK;
-      semNum = 32 + DevNo + 8;
+      device_register->term.recv_command = ACK;
+      semNum = 32 + DevNo + 8; // Receipt
     }
-  }
-
+  } // */
   if (semNum == -1)
     PANIC();
   int *semValue = (int *)&subDevice[semNum];
