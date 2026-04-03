@@ -9,6 +9,10 @@
         "terminal0": {
             "enabled": true,
             "file": "term0.uriscv"
+        },
+        "terminal1": {
+            "enabled": true,
+            "file": "term1.uriscv"
         }
     },
     "execution-rom": "/usr/local/share/uriscv/exec.rom.uriscv",

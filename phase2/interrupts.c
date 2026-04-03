@@ -1,5 +1,6 @@
-#include "../../uriscv-latest/src/include/uriscv/cpu.h"
 #include "./headers/interrupts.h"
+#include "../../uriscv-latest/src/include/uriscv/cpu.h"
+#include "../debug_print.h"
 #include "headers/initial.h"
 #include <uriscv/const.h>
 #include <uriscv/liburiscv.h>
@@ -12,7 +13,12 @@
 volatile unsigned int *bitmap = (unsigned int *)BITMAP_BASE;
 
 void interruptHandler(void) {
+
+  debug_print("INterrupt handler\n");
   unsigned int exceptCode = getCAUSE() & CAUSE_EXCCODE_MASK;
+  debug_print("exceptcode");
+  debug_print_hex((unsigned int)exceptCode);
+  debug_print("\n");
   unsigned int intlineNo;
   switch (exceptCode) {
   case IL_CPUTIMER:
@@ -50,6 +56,7 @@ void interruptHandler(void) {
 }
 
 void deviceInterrupt(unsigned int intlineNo) {
+  debug_print("devicce interrupt \n");
   unsigned int word = intlineNo - 3;
   unsigned int DevNo;
   // bool found = false;
@@ -70,6 +77,9 @@ void deviceInterrupt(unsigned int intlineNo) {
   } else if (bitmap[word] & DEV7ON) {
     DevNo = 7;
   } else {
+    debug_print("panic devint \n");
+    debug_print_hex((unsigned int)bitmap[word]);
+    debug_print("\n");
     PANIC();
   }
   volatile memaddr devAddrBase =
@@ -112,14 +122,16 @@ void deviceInterrupt(unsigned int intlineNo) {
     (*semValue)++;
 
   unsigned int cpuNum = getPRID();
-  if (currProc){
-     STCK(processTimer);
-     LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
-  } else scheduler();
+  if (currProc) {
+    STCK(processTimer);
+    LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
+  } else
+    scheduler();
 }
 
 // gestione interrupt causati da process local timer
 void PLTInterrupt(void) {
+  debug_print("PLT interrupt \n");
   unsigned int cpuNum = getPRID();
   state_t *state = GET_EXCEPTION_STATE_PTR(cpuNum);
   currProc->p_s = *state;
@@ -130,6 +142,7 @@ void PLTInterrupt(void) {
 }
 
 void ITInterrupt(void) {
+  debug_print("IIT interrupt \n");
   LDIT(PSECOND);
   int *sem = (int *)&subDevice[48];
   pcb_t *pcb;
@@ -141,8 +154,9 @@ void ITInterrupt(void) {
   }
   pseudoClock = 0; // ERA subDevice[48] = 0
   unsigned int cpuNum = getPRID();
-  if (currProc){
+  if (currProc) {
     STCK(processTimer);
     LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
-  } else scheduler();
+  } else
+    scheduler();
 }

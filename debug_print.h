@@ -3,11 +3,11 @@
 #define DEBUG_PRINT_H
 
 static inline void debug_print(char *str) {
-  volatile unsigned int *term0_base = (volatile unsigned int *)0x10000254;
+  volatile unsigned int *term0_base = (volatile unsigned int *)0x10000264;
   while (*str) {
     term0_base[3] = 2 | (*str << 8); // PRINTCHR
     while ((term0_base[2] & 0xFF) != 5) {
-    }                  // Wait for RECVD
+    } // Wait for RECVD
     term0_base[3] = 1; // ACK
     str++;
   }

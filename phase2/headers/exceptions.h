@@ -8,6 +8,7 @@
 #include "../../phase1/headers/pcb.h"
 #include "./interrupts.h"
 #include "./scheduler.h"
+#include "initial.h"
 #include <uriscv/liburiscv.h>
 
 // SEZIONE 2.1: Dichiarazione delle variabili globali del Nucleo
@@ -16,20 +17,20 @@
  * @brief Conteggio dei processi avviati ma non ancora terminati.
  * Incrementato da `CreateProcess`, decrementato durante la terminazione.
  */
-extern int process_count;
+// extern unsigned int processCount;
 
 /**
  * @brief Conteggio dei processi bloccati in attesa di I/O o del timer
  * (soft-blocked). Incrementato quando un processo si blocca su un semaforo di
  * device/timer, decrementato quando viene sbloccato o terminato.
  */
-extern int soft_block_count; 
+// extern unsigned int softBlockCount;
 
 /**
  * @brief Coda dei processi pronti per essere eseguiti (in stato "ready").
  * Gestita dallo scheduler e dalle funzioni che sbloccano i processi.
  */
-extern struct list_head ready_queue;
+// extern struct list_head readyQueue;
 
 /**
  * @brief Array dei semafori per i dispositivi e per il pseudo-clock.
