@@ -216,7 +216,7 @@ void syscallHandler(void) {
   case PASSEREN: {
     debug_print("------  PASSEREN ----- \n");
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
-    if (sem == 0) {
+    if (*sem == 0) {
       is_blocking = 1;
       insertBlocked(sem, currProc);
       // softBlockCount++;
@@ -233,7 +233,7 @@ void syscallHandler(void) {
     // debug_print("\n");
     is_blocking = 0;
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
-    if (sem == 0 && headBlocked(sem)) {
+    if (*sem == 0 && headBlocked(sem)) {
       pcb_t *p = removeBlocked(sem);
       // softBlockCount--;
       if (p != NULL) {
@@ -369,6 +369,7 @@ void syscallHandler(void) {
   } else { // 6.13: ritorno da una SYSCALL bloccante
     if (currProc != NULL) {
       currProc->p_s = *exception_state;
+      currProc = NULL;
     }
     debug_print("scheduler chiamato da syscall handelr \n");
     scheduler();
@@ -446,7 +447,7 @@ static void recursive_terminate(pcb_t *proc) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
         if ((sem_addr >= (int *)&subDevice[0] &&
              sem_addr < (int *)&subDevice[NRSEMAPHORES]) ||
-            sem_addr == (int *)&pseudoClock) {
+            sem_addr == (int *)&pseudoClock) { //subDevice[NRSEMAPHORES] ??????
           softBlockCount--;
         }
       }

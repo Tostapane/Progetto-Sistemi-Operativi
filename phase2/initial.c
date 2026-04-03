@@ -88,7 +88,6 @@ int main() {
   currProc = NULL;
   for (int i = 0; i < NRSEMAPHORES; i++)
     subDevice[i] = 0;
-  pseudoClock = 0;
   processCount = 0;
 
   // 2.5

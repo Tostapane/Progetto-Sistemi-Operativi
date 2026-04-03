@@ -144,7 +144,7 @@ void PLTInterrupt(void) {
 void ITInterrupt(void) {
   debug_print("IIT interrupt \n");
   LDIT(PSECOND);
-  int *sem = (int *)&subDevice[48];
+  int *sem = (int *)&pseudoClock;
   pcb_t *pcb;
   while (headBlocked(sem)) {
     pcb = removeBlocked(sem);
