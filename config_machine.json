@@ -22,6 +22,6 @@
         "asid": 64,
         "file": "build/MultiPandOS.stab.uriscv"
     },
-    "tlb-floor-address": "0xffffffff",
+    "tlb-floor-address": "0x40000000",
     "tlb-size": 16
 }

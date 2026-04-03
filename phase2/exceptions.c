@@ -168,7 +168,8 @@ void syscallHandler(void) {
 
   // 6.12: Incremento del PC per evitare loop.
   // Per le chiamate bloccanti, questo stato aggiornato verrà salvato nel PCB.
-  if (syscall_number <= -1 && syscall_number >= -10) exception_state->pc_epc += WORDLEN;
+  //if (syscall_number <= -1 && syscall_number >= -10) 
+    exception_state->pc_epc += WORDLEN;
 
   switch (syscall_number) {
 
@@ -354,10 +355,17 @@ void syscallHandler(void) {
              // logica precedente
     //debug_print("GREECE \n");
 
-    exception_state->cause =
-        (exception_state->cause & ~GETEXECCODE) | (PRIVINSTR << CAUSESHIFT);
-    programTrapHandler();
-    return;
+    // Se syscall_number > 0, è una richiesta per il Support Level (6.8.1)
+        if (syscall_number > 0) {
+            programTrapHandler(); // Passa lo stato (già incrementato) al Support Level
+        } else {
+            // Se syscall_number < -10 o sconosciuta negativa, è una Trap (Privileged Instruction)
+            exception_state->cause = (exception_state->cause & ~CAUSE_EXCCODE_MASK) | (PRIVINSTR << CAUSESHIFT);
+            // IMPORTANTE: in questo caso specifico di errore, 
+            // il PC non dovrebbe essere avanzato perché l'istruzione è illegale.
+            exception_state->pc_epc -= WORDLEN; 
+            programTrapHandler();
+        }
   }
   }
 
@@ -451,10 +459,7 @@ static void recursive_terminate(pcb_t *proc) {
       int *sem_addr = proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
       if (outBlocked(proc) != NULL) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
-        if ((sem_addr >= (int *)&subDevice[0] &&
-             sem_addr < (int *)&subDevice[NRSEMAPHORES -
-                                          1])) { // subDevice[NRSEMAPHORES]
-                                                 // ??????
+        if ((sem_addr >= (int *)&subDevice[0] && sem_addr <= (int *)&subDevice[NRSEMAPHORES - 1])) {
           softBlockCount--;
         }
       }
