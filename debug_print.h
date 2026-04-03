@@ -22,7 +22,7 @@ static inline void debug_print_hex(unsigned int num) { /*
     num /= 16;
   }
   debug_print(buf);
-    */
+    //*/
 }
 
 #endif
