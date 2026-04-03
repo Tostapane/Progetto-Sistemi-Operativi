@@ -144,7 +144,7 @@ void PLTInterrupt(void) {
 void ITInterrupt(void) {
   debug_print("IIT interrupt \n");
   LDIT(PSECOND);
-  int *sem = (int *)&pseudoClock;
+  int *sem = (int *)&subDevice[NRSEMAPHORES - 1];
   pcb_t *pcb;
   while (headBlocked(sem)) {
     pcb = removeBlocked(sem);
@@ -152,7 +152,7 @@ void ITInterrupt(void) {
     softBlockCount--;
     insertProcQ(&readyQueue, pcb);
   }
-  pseudoClock = 0; // ERA subDevice[48] = 0
+  subDevice[NRSEMAPHORES - 1]; // ERA subDevice[48] = 0
   unsigned int cpuNum = getPRID();
   if (currProc) {
     STCK(processTimer);

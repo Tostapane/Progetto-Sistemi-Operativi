@@ -49,9 +49,10 @@ void exceptionHandler(void) {
   debug_print("Inizio Exception handler \n");
   cpu_t curr_time;
   STCK(curr_time);
-  if (currProc != NULL)
+  if (currProc != NULL) {
     currProc->p_time += (curr_time - processTimer);
-
+    // processTimer = curr_time; // aggiunta
+  }
   // id del processore che ha causato l'eccezione
   unsigned int procsrID = getPRID();
 
@@ -306,7 +307,7 @@ void syscallHandler(void) {
   case CLOCKWAIT: {
     debug_print("COCKWAIT \n");
 
-    int *sem_ptr = &pseudoClock;
+    int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
     (*sem_ptr)--;
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
@@ -446,8 +447,9 @@ static void recursive_terminate(pcb_t *proc) {
       if (outBlocked(proc) != NULL) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
         if ((sem_addr >= (int *)&subDevice[0] &&
-             sem_addr < (int *)&subDevice[NRSEMAPHORES]) ||
-            sem_addr == (int *)&pseudoClock) { //subDevice[NRSEMAPHORES] ??????
+             sem_addr < (int *)&subDevice[NRSEMAPHORES -
+                                          1])) { // subDevice[NRSEMAPHORES]
+                                                 // ??????
           softBlockCount--;
         }
       }
