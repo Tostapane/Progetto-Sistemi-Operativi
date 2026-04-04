@@ -41,12 +41,12 @@ void *memcpy(void *dest, const void *src, int n) {
  * `programTrapHandler()`.
  */
 void exceptionHandler(void) {
-  //debug_print("Soft block count exception handler");
-  //debug_print_hex(softBlockCount);
-  //debug_print("\n");
+  // debug_print("Soft block count exception handler");
+  // debug_print_hex(softBlockCount);
+  // debug_print("\n");
 
   // salvataggio del tempo di ingresso
-  //debug_print("Inizio Exception handler \n");
+  // debug_print("Inizio Exception handler \n");
   cpu_t curr_time;
   STCK(curr_time);
   if (currProc != NULL) {
@@ -65,7 +65,7 @@ void exceptionHandler(void) {
 
   if (CAUSE_IS_INT(cause)) {
     // gestore interrupt
-    //debug_print("La causa e' un interrupt\n");
+    // debug_print("La causa e' un interrupt\n");
     interruptHandler();
   } else {
     // estrazione excode dallo stato salvato
@@ -74,14 +74,14 @@ void exceptionHandler(void) {
     // indirizzamento al gestore dell'eccezione corretto
 
     if (exCode == 8 || exCode == 11) {
-      //debug_print("La causa e' una syscall\n");
+      // debug_print("La causa e' una syscall\n");
       syscallHandler();
     } else if (exCode >= 24 && exCode <= 28) {
 
-      //debug_print("La causa e' un tlb \n");
+      // debug_print("La causa e' un tlb \n");
       tlbHandler();
     } else {
-      //debug_print("La causa e' una trap \n");
+      // debug_print("La causa e' una trap \n");
       programTrapHandler();
     }
   }
@@ -128,9 +128,9 @@ void syscallHandler(void) {
   // "You can use the GET_EXCEPTION_STATE_PTR(id) macro to access the
   // BIOS Data Page [Section 11] of the various CPUs."
   // read section 5
-  //debug_print("Soft block count syscall handler");
-  //debug_print_hex(softBlockCount);
-  //debug_print("\n");
+  // debug_print("Soft block count syscall handler");
+  // debug_print_hex(softBlockCount);
+  // debug_print("\n");
 
   state_t *exception_state = GET_EXCEPTION_STATE_PTR(getPRID());
 
@@ -158,7 +158,7 @@ void syscallHandler(void) {
      * 3. L'operatore OR (|) combina i due risultati, inserendo
      *    il nuovo codice di eccezione nello spazio che era stato pulito.
      */
-    //debug_print("Prima di un CAUSESHIFT in syscallhandler \n");
+    // debug_print("Prima di un CAUSESHIFT in syscallhandler \n");
 
     exception_state->cause =
         (exception_state->cause & ~GETEXECCODE) | (PRIVINSTR << CAUSESHIFT);
@@ -168,14 +168,14 @@ void syscallHandler(void) {
 
   // 6.12: Incremento del PC per evitare loop.
   // Per le chiamate bloccanti, questo stato aggiornato verrà salvato nel PCB.
-  //if (syscall_number <= -1 && syscall_number >= -10) 
-    exception_state->pc_epc += WORDLEN;
+  // if (syscall_number <= -1 && syscall_number >= -10)
+  exception_state->pc_epc += WORDLEN;
 
   switch (syscall_number) {
 
   // 6.1: CreateProcess
   case CREATEPROCESS: {
-    //debug_print(" CREATEPROCESS \n");
+    // debug_print(" CREATEPROCESS \n");
 
     pcb_t *new_proc = allocPcb();
     if (new_proc == NULL) { // Codice di errore: No More PCB
@@ -200,13 +200,17 @@ void syscallHandler(void) {
 
   // 6.2: TerminateProcess
   case TERMPROCESS: {
-    //debug_print("TERMPROCESS \n");
+    // debug_print("TERMPROCESS \n");
 
     pcb_t *target = (exception_state->reg_a1 == 0)
                         ? currProc
                         : find_pcb(exception_state->reg_a1);
     if (target) {
       recursive_terminate(target);
+    }
+    if (currProc != NULL) {
+      currProc->p_s = *exception_state;
+      insertProcQ(&readyQueue, currProc);
     }
     // La terminazione è sempre un'operazione che blocca il flusso normale
     // e richiede di chiamare lo scheduler.
@@ -216,10 +220,11 @@ void syscallHandler(void) {
 
   // 6.3: Passeren
   case PASSEREN: {
-    //debug_print("------  PASSEREN ----- \n");
+    // debug_print("------  PASSEREN ----- \n");
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
     if (*sem == 0) {
       is_blocking = 1;
+      currProc->p_s = *exception_state; // nuovo
       insertBlocked(sem, currProc);
       // softBlockCount++;
     } else {
@@ -229,22 +234,21 @@ void syscallHandler(void) {
   }
   // 6.4: Verhogen
   case VERHOGEN: {
-    //debug_print("------  VER  -------\n");
-    // //debug_print("Soft block count verhogen");
-    // //debug_print_hex(softBlockCount);
-    // //debug_print("\n");
-    is_blocking = 0;
+    // debug_print("------  VER  -------\n");
+    //  //debug_print("Soft block count verhogen");
+    //  //debug_print_hex(softBlockCount);
+    //  //debug_print("\n");
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
     if (*sem == 0 && headBlocked(sem)) {
       pcb_t *p = removeBlocked(sem);
       // softBlockCount--;
       if (p != NULL) {
-        //debug_print("P esiste \n");
+        // debug_print("P esiste \n");
 
         insertProcQ(&readyQueue, p);
       }
     } else {
-      //debug_print("else verhogen \n");
+      // debug_print("else verhogen \n");
       (*sem)++;
     }
     break;
@@ -253,7 +257,7 @@ void syscallHandler(void) {
     // 6.5: DoIO
 
   case DOIO: {
-    //debug_print("DOIO \n");
+    // debug_print("DOIO \n");
 
     unsigned int cmd_addr = (unsigned int)exception_state->reg_a1;
     *(unsigned int *)cmd_addr = (unsigned int)exception_state->reg_a2;
@@ -289,6 +293,7 @@ void syscallHandler(void) {
 
     int *sem_ptr = &subDevice[index];
     (*sem_ptr)--;
+    currProc->p_s = *exception_state; // nuovo
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -297,8 +302,8 @@ void syscallHandler(void) {
 
   // 6.6: GetCPUTime
   case GETTIME: {
-    //debug_print("GETTIME \n");
-    // gestione precedente del clock alla chiamata di exceptionHandler()
+    // debug_print("GETTIME \n");
+    //  gestione precedente del clock alla chiamata di exceptionHandler()
     cpu_t now;
     STCK(now);
     exception_state->reg_a0 = currProc->p_time + (now - processTimer);
@@ -307,10 +312,11 @@ void syscallHandler(void) {
 
   // 6.7: WaitForClock
   case CLOCKWAIT: {
-    //debug_print("COCKWAIT \n");
+    // debug_print("COCKWAIT \n");
 
     int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
     (*sem_ptr)--;
+    currProc->p_s = *exception_state; // nuovo
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -319,7 +325,7 @@ void syscallHandler(void) {
 
   // 6.8: GetSupportData
   case GETSUPPORTPTR: {
-    //debug_print("GET SUPPORT PLS \n");
+    // debug_print("GET SUPPORT PLS \n");
 
     exception_state->reg_a0 = (unsigned int)currProc->p_supportStruct;
     break;
@@ -327,7 +333,7 @@ void syscallHandler(void) {
 
   // 6.9: GetProcessID
   case GETPROCESSID: {
-    //debug_print("GET PROCESS ID \n");
+    // debug_print("GET PROCESS ID \n");
 
     if (exception_state->reg_a1 == 0) { // PID del processo corrente
       exception_state->reg_a0 = currProc->p_pid;
@@ -340,7 +346,7 @@ void syscallHandler(void) {
 
   // 6.10: Yield
   case YIELD: {
-    //debug_print("YIELD \n");
+    // debug_print("YIELD \n");
 
     // Salva lo stato corrente nel PCB
     currProc->p_s = *exception_state;
@@ -353,19 +359,22 @@ void syscallHandler(void) {
   // SYSCALL non di competenza o non valide
   default: { // 6.11: Tratta le SYSCALL non esistenti come Program Trap, stessa
              // logica precedente
-    //debug_print("GREECE \n");
+             // debug_print("GREECE \n");
 
     // Se syscall_number > 0, è una richiesta per il Support Level (6.8.1)
-        if (syscall_number > 0) {
-            programTrapHandler(); // Passa lo stato (già incrementato) al Support Level
-        } else {
-            // Se syscall_number < -10 o sconosciuta negativa, è una Trap (Privileged Instruction)
-            exception_state->cause = (exception_state->cause & ~CAUSE_EXCCODE_MASK) | (PRIVINSTR << CAUSESHIFT);
-            // IMPORTANTE: in questo caso specifico di errore, 
-            // il PC non dovrebbe essere avanzato perché l'istruzione è illegale.
-            exception_state->pc_epc -= WORDLEN; 
-            programTrapHandler();
-        }
+    if (syscall_number > 0) {
+      programTrapHandler(); // Passa lo stato (già incrementato) al Support
+                            // Level
+    } else {
+      // Se syscall_number < -10 o sconosciuta negativa, è una Trap (Privileged
+      // Instruction)
+      exception_state->cause = (exception_state->cause & ~CAUSE_EXCCODE_MASK) |
+                               (PRIVINSTR << CAUSESHIFT);
+      // IMPORTANTE: in questo caso specifico di errore,
+      // il PC non dovrebbe essere avanzato perché l'istruzione è illegale.
+      exception_state->pc_epc -= WORDLEN;
+      programTrapHandler();
+    }
   }
   }
 
@@ -381,11 +390,8 @@ void syscallHandler(void) {
     STCK(processTimer);
     LDST(exception_state);
   } else { // 6.13: ritorno da una SYSCALL bloccante
-    if (currProc != NULL) {
-      currProc->p_s = *exception_state;
-      currProc = NULL;
-    }
-    //debug_print("scheduler chiamato da syscall handler \n");
+    currProc = NULL;
+    // debug_print("scheduler chiamato da syscall handler \n");
     scheduler();
   }
 }
@@ -459,7 +465,8 @@ static void recursive_terminate(pcb_t *proc) {
       int *sem_addr = proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
       if (outBlocked(proc) != NULL) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
-        if ((sem_addr >= (int *)&subDevice[0] && sem_addr <= (int *)&subDevice[NRSEMAPHORES - 1])) {
+        if ((sem_addr >= (int *)&subDevice[0] &&
+             sem_addr <= (int *)&subDevice[NRSEMAPHORES - 1])) {
           softBlockCount--;
         }
       }
