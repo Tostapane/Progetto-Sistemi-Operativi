@@ -14,11 +14,11 @@ volatile unsigned int *bitmap = (unsigned int *)BITMAP_BASE;
 
 void interruptHandler(void) {
 
-  //debug_print("INterrupt handler\n");
+  // debug_print("INterrupt handler\n");
   unsigned int exceptCode = getCAUSE() & CAUSE_EXCCODE_MASK;
-  //debug_print("exceptcode");
-  //debug_print_hex((unsigned int)exceptCode);
-  //debug_print("\n");
+  // debug_print("exceptcode");
+  // debug_print_hex((unsigned int)exceptCode);
+  // debug_print("\n");
   unsigned int intlineNo;
   switch (exceptCode) {
   case IL_CPUTIMER:
@@ -56,7 +56,7 @@ void interruptHandler(void) {
 }
 
 void deviceInterrupt(unsigned int intlineNo) {
-  //debug_print("devicce interrupt \n");
+  // debug_print("devicce interrupt \n");
   unsigned int word = intlineNo - 3;
   unsigned int DevNo;
   // bool found = false;
@@ -77,9 +77,9 @@ void deviceInterrupt(unsigned int intlineNo) {
   } else if (bitmap[word] & DEV7ON) {
     DevNo = 7;
   } else {
-    //debug_print("panic devint \n");
-    //debug_print_hex((unsigned int)bitmap[word]);
-    //debug_print("\n");
+    // debug_print("panic devint \n");
+    // debug_print_hex((unsigned int)bitmap[word]);
+    // debug_print("\n");
     PANIC();
   }
   volatile memaddr devAddrBase =
@@ -102,7 +102,7 @@ void deviceInterrupt(unsigned int intlineNo) {
       status = tran_status;
       device_register->term.transm_command = ACK;
       semNum = 32 + DevNo; // Transmission
-    } else if ((recv_status & 0xFF)) {
+    } else if ((recv_status & 0xFF) == 5) {
       status = recv_status;
       device_register->term.recv_command = ACK;
       semNum = 32 + DevNo + 8; // Receipt
@@ -123,7 +123,7 @@ void deviceInterrupt(unsigned int intlineNo) {
 
   unsigned int cpuNum = getPRID();
   if (currProc) {
-    //STCK(processTimer);
+    // STCK(processTimer);
     LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
   } else
     scheduler();
@@ -131,7 +131,7 @@ void deviceInterrupt(unsigned int intlineNo) {
 
 // gestione interrupt causati da process local timer
 void PLTInterrupt(void) {
-  //debug_print("PLT interrupt \n");
+  // debug_print("PLT interrupt \n");
   unsigned int cpuNum = getPRID();
   state_t *state = GET_EXCEPTION_STATE_PTR(cpuNum);
   currProc->p_s = *state;
@@ -142,7 +142,7 @@ void PLTInterrupt(void) {
 }
 
 void ITInterrupt(void) {
-  //debug_print("IIT interrupt \n");
+  // debug_print("IIT interrupt \n");
   LDIT(PSECOND);
   int *sem = (int *)&subDevice[NRSEMAPHORES - 1];
   pcb_t *pcb;
@@ -155,7 +155,7 @@ void ITInterrupt(void) {
   subDevice[NRSEMAPHORES - 1] = 0; // ERA subDevice[48] = 0
   unsigned int cpuNum = getPRID();
   if (currProc) {
-    //STCK(processTimer);
+    // STCK(processTimer);
     LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
   } else
     scheduler();
