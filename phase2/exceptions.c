@@ -46,7 +46,7 @@ void exceptionHandler(void) {
   STCK(curr_time);
   if (currProc != NULL) {
     currProc->p_time += (curr_time - processTimer);
-    processTimer = curr_time; // aggiunta
+    processTimer = curr_time;
   }
   // id del processore che ha causato l'eccezione
   unsigned int procsrID = getPRID();
@@ -183,8 +183,8 @@ void syscallHandler(void) {
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
     if (*sem == 0) {
       is_blocking = 1;
-      currProc->p_s = *exception_state; // nuovo
-                                        // currProc -> p_semAdd = sem;
+      currProc->p_s = *exception_state;
+      // currProc -> p_semAdd = sem;
       insertBlocked(sem, currProc);
     } else {
       (*sem)--;
@@ -239,7 +239,7 @@ void syscallHandler(void) {
       }
     }
 
-    int *sem_ptr = &subDevice[index];
+    unsigned int *sem_ptr = &subDevice[index];
     // (*sem_ptr)--; non serve
     currProc->p_s = *exception_state; // nuovo
     insertBlocked(sem_ptr, currProc);
@@ -250,19 +250,17 @@ void syscallHandler(void) {
 
   // 6.6: GetCPUTime
   case GETTIME: {
-    //  gestione precedente del clock alla chiamata di exceptionHandler()
-    cpu_t now;
-    STCK(now);
-    exception_state->reg_a0 = currProc->p_time + (now - processTimer);
+    cpu_t currTime;
+    STCK(currTime);
+    exception_state->reg_a0 = currProc->p_time + (currTime - processTimer);
     break;
   }
 
   // 6.7: WaitForClock
   case CLOCKWAIT: {
-
-    int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
+    unsigned int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
     (*sem_ptr)--;
-    currProc->p_s = *exception_state; // nuovo
+    currProc->p_s = *exception_state;
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -324,15 +322,14 @@ void syscallHandler(void) {
   }
 
   // Prima di uscire, carichiamo il tempo speso nel kernel sul processo
-  cpu_t kernel_exit_time;
-  STCK(kernel_exit_time);
+  cpu_t currTime;
+  STCK(currTime);
   if (currProc != NULL) {
-    currProc->p_time += (kernel_exit_time - processTimer);
+    currProc->p_time += (currTime - processTimer);
   }
 
   //   6.12: Ritorno da una SYSCALL non bloccante
   if (is_blocking == 0) { // Ricarica lo stato per riprendere l'esecuzione
-    STCK(processTimer);
     LDST(exception_state);
   } else { // 6.13: ritorno da una SYSCALL bloccante
     currProc = NULL;
@@ -406,11 +403,11 @@ static void recursive_terminate(pcb_t *proc) {
     // Prova a rimuoverlo dalla Ready Queue
     if (outProcQ(&readyQueue, proc) == NULL) {
       // Se non era in Ready, potrebbe essere bloccato
-      int *sem_addr = proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
+      unsigned int *sem_addr = proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
       if (outBlocked(proc) != NULL) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
-        if ((sem_addr >= (int *)&subDevice[0] &&
-             sem_addr <= (int *)&subDevice[NRSEMAPHORES - 1])) {
+        if ((sem_addr >= (unsigned int *)&subDevice[0] &&
+             sem_addr <= (unsigned int *)&subDevice[NRSEMAPHORES - 1])) {
           softBlockCount--;
         }
       }

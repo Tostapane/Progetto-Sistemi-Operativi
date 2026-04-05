@@ -109,7 +109,7 @@ void deviceInterrupt(unsigned int intlineNo) {
 
   unsigned int cpuNum = getPRID();
   if (currProc) {
-    // STCK(processTimer);
+    STCK(processTimer);
     LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
   } else
     scheduler();
@@ -139,7 +139,7 @@ void ITInterrupt(void) {
   subDevice[NRSEMAPHORES - 1] = 0; // ERA subDevice[48] = 0
   unsigned int cpuNum = getPRID();
   if (currProc) {
-    // STCK(processTimer);
+    STCK(processTimer);
     LDST(GET_EXCEPTION_STATE_PTR(cpuNum));
   } else
     scheduler();

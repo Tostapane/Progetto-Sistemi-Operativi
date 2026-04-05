@@ -65,7 +65,7 @@ typedef struct pcb_t
     cpu_t p_time; /* cpu time used by proc */
 
     /* Pointer to the semaphore the process is currently blocked on */
-    int *p_semAdd;
+    unsigned int *p_semAdd;
 
     /* Pointer to the support struct */
     support_t *p_supportStruct;
