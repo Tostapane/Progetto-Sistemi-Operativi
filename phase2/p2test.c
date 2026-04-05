@@ -18,7 +18,6 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 #include <uriscv/liburiscv.h>
-#include "../debug_print.h"
 
 typedef unsigned int devregtr;
 

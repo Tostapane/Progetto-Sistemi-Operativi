@@ -3,8 +3,8 @@
  * logging.
  */
 
-#include "../headers/const.h"
-#include "../headers/types.h"
+#include "../../headers/const.h"
+#include "../../headers/types.h"
 #include <uriscv/liburiscv.h>
 
 typedef unsigned int devregtr;

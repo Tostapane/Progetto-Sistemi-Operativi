@@ -1,5 +1,4 @@
 #include "headers/exceptions.h"
-#include "../debug_print.h"
 #include "headers/initial.h"
 #include <uriscv/liburiscv.h>
 // Funzioni di supporto statiche per la gestione dei processi

@@ -1,5 +1,4 @@
 #include "./headers/initial.h"
-#include "../debug_print.h"
 #include <uriscv/const.h>
 #include <uriscv/types.h>
 
@@ -28,7 +27,6 @@ unsigned int pseudoClock;
 cpu_t processTimer;
 
 int main() {
-  debug_print("Inizio main (initial.c)\n");
 
   // 2.2
 

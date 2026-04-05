@@ -1,6 +1,5 @@
 #include "./headers/interrupts.h"
 #include "../../uriscv-latest/src/include/uriscv/cpu.h"
-#include "../debug_print.h"
 #include "headers/initial.h"
 #include <uriscv/const.h>
 #include <uriscv/liburiscv.h>

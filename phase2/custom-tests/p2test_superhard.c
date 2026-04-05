@@ -1,7 +1,6 @@
 /* phase2/p2test_superhard.c */
-#include "../debug_print.h"
-#include "../headers/const.h"
-#include "../headers/types.h"
+#include "../../headers/const.h"
+#include "../../headers/types.h"
 #include <uriscv/liburiscv.h>
 
 #ifndef CREATEPROCESS
