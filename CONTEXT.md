@@ -1,8 +1,8 @@
 # PandOSsh: Phase 2
 
-### Luca Bassi (luca.bassi14@studio.unibo.it)
+### Luca Bassi (<luca.bassi14@studio.unibo.it>)
 
-### Luca Orlandello (luca.orlandello@studio.unibo.it)
+### Luca Orlandello (<luca.orlandello@studio.unibo.it>)
 
 ### December 10, 2025
 
@@ -109,18 +109,18 @@ is implemented.
 - Set the Stack pointer for the Nucleus exception handler to the top of the Nucleus stack
   page: 0x2000.1000 (constant KERNELSTACK).
 
-3. Initialize the Level 2 (Phase 1) data structures:
+1. Initialize the Level 2 (Phase 1) data structures:
 
 ```
 initPcbs();
 initASL();
 ```
 
-4. Initialize all the previously declared variables: Process Count (0), Soft-block Count (0), Ready
+1. Initialize all the previously declared variables: Process Count (0), Soft-block Count (0), Ready
    Queue (mkEmptyProcQ()), and Current Process (NULL). Since the device semaphores will be
    used for synchronization, as opposed to mutual exclusion, they should all be initialized to zero.
-5. Load the system-wide Interval Timer with 100 milliseconds (constant PSECOND) [Section 7.3].
-6. Instantiate a single process, place its PCB in the Ready Queue, and increment Process Count.
+2. Load the system-wide Interval Timer with 100 milliseconds (constant PSECOND) [Section 7.3].
+3. Instantiate a single process, place its PCB in the Ready Queue, and increment Process Count.
    A process is instantiated by allocating a PCB (i.e. allocPcb()), and initializing the processor
    state that is part of the PCB. In particular this process needs to have interrupts enabled, kernel-
    mode on, the SP set to RAMTOP (i.e. use the last RAM frame for its stack), and its PC set to the
@@ -150,7 +150,7 @@ Remember to declare test as “external” in your program by including the line
 extern void test();
 ```
 
-7. Call the Scheduler.
+1. Call the Scheduler.
 
 Once main() calls the Scheduler its task is complete since control should never return to main().
 At this point the only mechanism for re-entering the Nucleus is through an exception; which includes
@@ -205,7 +205,7 @@ see Dott. Rovelli’s thesis for more details.
 The first interrupt that occurs after entering a Wait State should not be for the PLT.
 ```
 
-3. Deadlock for PandOSsh is defined as when the Process Count > 0 and the Soft-block Count is
+1. Deadlock for PandOSsh is defined as when the Process Count > 0 and the Soft-block Count is
    zero. Take an appropriate deadlock detected action; invoke the PANIC BIOS service/instruction
    [Section 13.2].
 
@@ -299,7 +299,7 @@ a2, (optionally) a pointer to a Support Structure in a3, and then executing the 
 The following C code can be used to request a NSYS1:
 ```
 
-int retValue = SYSCALL(CREATEPROCESS, state_t *statep, int prio, support_t *supportp);
+int retValue = SYSCALL(CREATEPROCESS, state_t *statep, int prio, support_t*supportp);
 
 Where the mnemonic constant CREATEPROCESS has the value of -1.
 The newly populated PCB is placed on the Ready Queue and is made a child of the Current
@@ -613,18 +613,18 @@ Tip : to calculate the device number you can use a series of ifs with bitwise AN
 the bitmap and the DEVxON constants as conditions.
 ```
 
-2. Save off the status code from the (sub)device’s device register.
-3. Acknowledge the outstanding interrupt. This is accomplished by writing the acknowledge com-
+1. Save off the status code from the (sub)device’s device register.
+2. Acknowledge the outstanding interrupt. This is accomplished by writing the acknowledge com-
    mand code (constant ACK) in the interrupting (sub)device’s command register. Alternatively,
    writing a new command in the interrupting (sub)device’s device register will also acknowledge
    the interrupt.
-4. Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.
+3. Perform a V operation on the Nucleus maintained semaphore associated with this (sub)device.
    This operation should unblock the process (PCB) which initiated this I/O operation and then
    requested to wait for its completion.
-5. Place the stored off status code in the newly unblocked PCB’s a0 register.
-6. Insert the newly unblocked PCB on the Ready Queue, transitioning this process from the
+4. Place the stored off status code in the newly unblocked PCB’s a0 register.
+5. Insert the newly unblocked PCB on the Ready Queue, transitioning this process from the
    “blocked” state to the “ready” state.
-7. Return control to the Current Process if exists: perform a LDST on the saved exception state of
+6. Return control to the Current Process if exists: perform a LDST on the saved exception state of
    the current CPU, otherwise call the scheduler.
 
 **Important** : It is possible that there isn’t any PCB waiting for this device. This can happen if
@@ -742,24 +742,26 @@ and one for TLB exceptions.
 The following two structures are provided:
 ```
 
-/_ process context _/
+/_process context _/
 typedef struct context_t {
 /_ process context fields _/
 unsigned int c_stackPtr, /_ stack pointer value _/
 c_status, /_ status reg value _/
-c_pc; /_ PC address _/
+c_pc; /_ PC address_/
 } context_t;
 
 typedef struct support_t {
-int sup_asid; /_ Process Id (asid) _/
+int sup_asid; /_Process Id (asid) _/
 state_t sup_exceptState[2]; /_ stored excpt states _/
-context_t sup_exceptContext[2]; /_ pass up contexts _/
+context_t sup_exceptContext[2]; /_ pass up contexts_/
 // ... other fields to be added later
 } support_t;
 
-/_ Exceptions related constants _/
-#define PGFAULTEXCEPT 0
-#define GENERALEXCEPT 1
+/_Exceptions related constants_/
+
+# define PGFAULTEXCEPT 0
+
+# define GENERALEXCEPT 1
 
 ```
 To pass up the handling of an exception:
@@ -993,7 +995,7 @@ the liburiscv library.
 Simply include the line
 ```
 
-#include <uriscv/liburiscv.h>
+# include <uriscv/liburiscv.h>
 
 ```
 in one’s source files.^2
