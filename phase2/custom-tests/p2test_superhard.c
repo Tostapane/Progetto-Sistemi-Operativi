@@ -172,7 +172,7 @@ void process_QC() {
 
 // ------------------- Test 5: IO Termination -------------------
 void child_terminator() {
-  SYSCALL(CLOCKWAIT, 0, 0, 0); // Wait for parent to initiate IO
+  SYSCALL(YIELD, 0, 0, 0); // Wait for parent to initiate IO
   SYSCALL(TERMPROCESS, pid_B, 0, 0);
   SYSCALL(TERMPROCESS, 0, 0, 0);
 }

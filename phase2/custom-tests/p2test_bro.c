@@ -204,15 +204,9 @@ void test_A1() {
   state_A2.mie = MIE_ALL;
 
   pid_A2 = SYSCALL(CREATEPROCESS, (int)&state_A2, 1, (int)NULL);
-  print("A1: Created A2 with PID: ");
-  print_int(pid_A2);
-  print("\n");
 
   SYSCALL(YIELD, 0, 0, 0);
 
-  print("A1: Resumed. Terminating A2 (PID: ");
-  print_int(pid_A2);
-  print("). Expecting cascading termination of A3.\n");
   SYSCALL(TERMPROCESS, pid_A2, 0, 0);
 
   print("A1: A2 and its progeny correctly terminated. Signaling Main.\n");
@@ -228,9 +222,6 @@ void test_A2() {
   state_A3.mie = MIE_ALL;
 
   pid_A3 = SYSCALL(CREATEPROCESS, (int)&state_A3, 1, (int)NULL);
-  print("A2: Created A3 with PID: ");
-  print_int(pid_A3);
-  print("\n");
 
   SYSCALL(YIELD, 0, 0, 0);
 
@@ -239,7 +230,6 @@ void test_A2() {
 }
 
 void test_A3() {
-  print("A3: Started. Yielding back.\n");
   SYSCALL(YIELD, 0, 0, 0);
   print(
       "A3: [ERROR] I should have been terminated cascadingly when A2 died!\n");

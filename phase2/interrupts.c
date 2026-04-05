@@ -4,20 +4,11 @@
 #include <uriscv/const.h>
 #include <uriscv/liburiscv.h>
 #include <uriscv/types.h>
-/**
- * todo:
- - gestire errori
- */
-
 volatile unsigned int *bitmap = (unsigned int *)BITMAP_BASE;
 
 void interruptHandler(void) {
 
-  // debug_print("INterrupt handler\n");
   unsigned int exceptCode = getCAUSE() & CAUSE_EXCCODE_MASK;
-  // debug_print("exceptcode");
-  // debug_print_hex((unsigned int)exceptCode);
-  // debug_print("\n");
   unsigned int intlineNo;
   switch (exceptCode) {
   case IL_CPUTIMER:
@@ -55,10 +46,8 @@ void interruptHandler(void) {
 }
 
 void deviceInterrupt(unsigned int intlineNo) {
-  // debug_print("devicce interrupt \n");
   unsigned int word = intlineNo - 3;
   unsigned int DevNo;
-  // bool found = false;
   if (bitmap[word] & DEV0ON) {
     DevNo = 0;
   } else if (bitmap[word] & DEV1ON) {
@@ -76,9 +65,6 @@ void deviceInterrupt(unsigned int intlineNo) {
   } else if (bitmap[word] & DEV7ON) {
     DevNo = 7;
   } else {
-    // debug_print("panic devint \n");
-    // debug_print_hex((unsigned int)bitmap[word]);
-    // debug_print("\n");
     PANIC();
   }
   volatile memaddr devAddrBase =
@@ -130,7 +116,6 @@ void deviceInterrupt(unsigned int intlineNo) {
 
 // gestione interrupt causati da process local timer
 void PLTInterrupt(void) {
-  // debug_print("PLT interrupt \n");
   unsigned int cpuNum = getPRID();
   state_t *state = GET_EXCEPTION_STATE_PTR(cpuNum);
   currProc->p_s = *state;
@@ -141,7 +126,6 @@ void PLTInterrupt(void) {
 }
 
 void ITInterrupt(void) {
-  // debug_print("IIT interrupt \n");
   LDIT(PSECOND);
   int *sem = (int *)&subDevice[NRSEMAPHORES - 1];
   pcb_t *pcb;

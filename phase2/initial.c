@@ -2,8 +2,6 @@
 #include <uriscv/const.h>
 #include <uriscv/types.h>
 
-// 2.1
-
 // the number of started, but not yet terminated processes
 unsigned int processCount;
 
@@ -27,8 +25,6 @@ unsigned int pseudoClock;
 cpu_t processTimer;
 
 int main() {
-
-  // 2.2
 
   /* Struttura che serve a gestire le eccezioni incluse quelle relative alla
    * TLB. L'hardware sa di dovere condultare questa locazione di memoria
@@ -68,7 +64,6 @@ int main() {
    * momento, sovrascrivendolo!!*/
   passupvector->exception_stackPtr = (memaddr)KERNELSTACK;
 
-  // 2.3
   // inizializzazione di strutture dati e delle variabili
   // dichiarate precedentemente
   // inizializza la coda dei pcb
