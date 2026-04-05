@@ -103,8 +103,9 @@ void deviceInterrupt(unsigned int intlineNo) {
     softBlockCount--;
     // da blocked a ready
     pcb->p_semAdd = NULL;
-  } else
-    (*semValue)++;
+  } else {
+  }
+  // (*semValue)++; non serve a nulla
 
   unsigned int cpuNum = getPRID();
   if (currProc) {

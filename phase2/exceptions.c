@@ -1,5 +1,6 @@
 #include "headers/exceptions.h"
 #include "headers/initial.h"
+#include "headers/interrupts.h"
 #include <uriscv/liburiscv.h>
 // Funzioni di supporto statiche per la gestione dei processi
 static pcb_t *find_pcb(int pid);
@@ -69,7 +70,6 @@ void exceptionHandler(void) {
     if (exCode == 8 || exCode == 11) {
       syscallHandler();
     } else if (exCode >= 24 && exCode <= 28) {
-
       tlbHandler();
     } else {
       programTrapHandler();
@@ -184,8 +184,8 @@ void syscallHandler(void) {
     if (*sem == 0) {
       is_blocking = 1;
       currProc->p_s = *exception_state; // nuovo
+                                        // currProc -> p_semAdd = sem;
       insertBlocked(sem, currProc);
-      // softBlockCount++;
     } else {
       (*sem)--;
     }
@@ -196,12 +196,8 @@ void syscallHandler(void) {
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
     if (*sem == 0 && headBlocked(sem)) {
       pcb_t *p = removeBlocked(sem);
-      // softBlockCount--;
-      if (p != NULL) {
-        // debug_print("P esiste \n");
-
-        insertProcQ(&readyQueue, p);
-      }
+      // currProc -> p_semAdd = NULL;
+      insertProcQ(&readyQueue, p);
     } else {
       (*sem)++;
     }
@@ -216,7 +212,7 @@ void syscallHandler(void) {
     *(unsigned int *)cmd_addr = (unsigned int)exception_state->reg_a2;
 
     // 1. Distanza esatta in byte dalla base di tutti i dispositivi hardware
-    unsigned int total_offset = cmd_addr - 0x10000054;
+    unsigned int total_offset = cmd_addr - START_ADDR;
 
     // 2. Ogni registro è grande 0x10 (16) byte.
     // Dividendo, otteniamo l'indice del dispositivo come se fosse un array
@@ -235,9 +231,8 @@ void syscallHandler(void) {
       unsigned int devNo = flat_device_index - 32;
 
       // Il resto della divisione ci dà l'offset del registro specifico
-      unsigned int remainder = total_offset % 0x10;
 
-      if (remainder == 0x0C) { // Offset Comando Trasmissione
+      if (total_offset % 0x10 == 0x0C) { // Offset Comando Trasmissione
         index = 32 + devNo;
       } else { // Offset Comando Ricezione
         index = 40 + devNo;
@@ -245,7 +240,7 @@ void syscallHandler(void) {
     }
 
     int *sem_ptr = &subDevice[index];
-    (*sem_ptr)--;
+    // (*sem_ptr)--; non serve
     currProc->p_s = *exception_state; // nuovo
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;

@@ -16,10 +16,11 @@ struct list_head readyQueue;
 pcb_t *currProc;
 
 // semaphore for external (sub)device
+// l'ultimo e' lo pseudoclock
 unsigned int subDevice[NRSEMAPHORES];
 
 // semaphore to support the pseudo clock
-unsigned int pseudoClock;
+// unsigned int pseudoClock;
 
 // variable to save the starting time of a process
 cpu_t processTimer;
@@ -81,7 +82,6 @@ int main() {
   currProc = NULL;
   for (int i = 0; i < NRSEMAPHORES; i++)
     subDevice[i] = 0;
-  processCount = 0;
 
   // 2.5
   // load the system-wide Interval Timer with 100 milliseconds (constant
@@ -116,8 +116,5 @@ int main() {
   proc->p_semAdd = NULL;
   proc->p_supportStruct = NULL;
 
-  // 2.7
-  // call the scheduler
-  // questa funzione deve ancora essere implementata
   scheduler();
 }

@@ -18,7 +18,6 @@ void scheduler(void) {
 
   } else {
     if (processCount == 0) {
-
       HALT();
     }
     if (processCount > 0 && softBlockCount > 0) {
@@ -30,7 +29,6 @@ void scheduler(void) {
       WAIT();
     }
     if (processCount > 0 && softBlockCount == 0) {
-
       PANIC();
     }
   }
