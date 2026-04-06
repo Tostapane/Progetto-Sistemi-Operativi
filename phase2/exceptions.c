@@ -15,7 +15,14 @@ void *memcpy(void *dest, const void *src, int n) {
   }
   return dest;
 }
-
+/*
+void uTLB_RefillHandler() {
+  setENTRYHI(0x80000000);
+  setENTRYLO(0x00000000);
+  TLBWR();
+  LDST((state_t *)BIOSDATAPAGE);
+}
+*/
 /**
  * SEZIONE 5: Exception Handling
  *
@@ -42,12 +49,6 @@ void *memcpy(void *dest, const void *src, int n) {
  */
 void exceptionHandler(void) {
 
-  cpu_t curr_time;
-  STCK(curr_time);
-  if (currProc != NULL) {
-    currProc->p_time += (curr_time - processTimer);
-    processTimer = curr_time;
-  }
   // id del processore che ha causato l'eccezione
   unsigned int procsrID = getPRID();
 
@@ -242,6 +243,7 @@ void syscallHandler(void) {
     unsigned int *sem_ptr = &subDevice[index];
     // (*sem_ptr)--; non serve
     currProc->p_s = *exception_state; // nuovo
+                                      // currProc- > p_semadd?
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -259,8 +261,9 @@ void syscallHandler(void) {
   // 6.7: WaitForClock
   case CLOCKWAIT: {
     unsigned int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
-    (*sem_ptr)--;
+    // (*sem_ptr)--;
     currProc->p_s = *exception_state;
+    // currProc -> p_semAdd ?
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -285,7 +288,6 @@ void syscallHandler(void) {
     }
     break;
   }
-
   // 6.10: Yield
   case YIELD: {
 
@@ -304,11 +306,7 @@ void syscallHandler(void) {
   default: { // 6.11: Tratta le SYSCALL non esistenti come Program Trap, stessa
              // logica precedente
 
-    // Se syscall_number > 0, è una richiesta per il Support Level (6.8.1)
-    if (syscall_number > 0) {
-      programTrapHandler(); // Passa lo stato (già incrementato) al Support
-                            // Level
-    } else {
+    if (syscall_number <= 0) {
       // Se syscall_number < -10 o sconosciuta negativa, è una Trap (Privileged
       // Instruction)
       exception_state->cause = (exception_state->cause & ~CAUSE_EXCCODE_MASK) |
@@ -316,22 +314,21 @@ void syscallHandler(void) {
       // IMPORTANTE: in questo caso specifico di errore,
       // il PC non dovrebbe essere avanzato perché l'istruzione è illegale.
       exception_state->pc_epc -= WORDLEN;
-      programTrapHandler();
     }
+    programTrapHandler();
   }
-  }
-
-  // Prima di uscire, carichiamo il tempo speso nel kernel sul processo
-  cpu_t currTime;
-  STCK(currTime);
-  if (currProc != NULL) {
-    currProc->p_time += (currTime - processTimer);
   }
 
   //   6.12: Ritorno da una SYSCALL non bloccante
   if (is_blocking == 0) { // Ricarica lo stato per riprendere l'esecuzione
     LDST(exception_state);
   } else { // 6.13: ritorno da una SYSCALL bloccante
+           // Prima di uscire, carichiamo il tempo speso nel kernel sul processo
+    cpu_t currTime;
+    STCK(currTime);
+    if (currProc != NULL) {
+      currProc->p_time += (currTime - processTimer);
+    }
     currProc = NULL;
     scheduler();
   }
@@ -403,7 +400,8 @@ static void recursive_terminate(pcb_t *proc) {
     // Prova a rimuoverlo dalla Ready Queue
     if (outProcQ(&readyQueue, proc) == NULL) {
       // Se non era in Ready, potrebbe essere bloccato
-      unsigned int *sem_addr = proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
+      unsigned int *sem_addr =
+          proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
       if (outBlocked(proc) != NULL) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
         if ((sem_addr >= (unsigned int *)&subDevice[0] &&
@@ -452,7 +450,7 @@ void programTrapHandler(void) {
 
   } else {
     recursive_terminate(currProc);
-    currProc = NULL;
+    currProc = NULL; // serve?
     scheduler();
   }
 }

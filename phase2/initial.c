@@ -19,9 +19,6 @@ pcb_t *currProc;
 // l'ultimo e' lo pseudoclock
 unsigned int subDevice[NRSEMAPHORES];
 
-// semaphore to support the pseudo clock
-// unsigned int pseudoClock;
-
 // variable to save the starting time of a process
 cpu_t processTimer;
 

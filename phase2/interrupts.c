@@ -72,7 +72,7 @@ void deviceInterrupt(unsigned int intlineNo) {
   // /*
   volatile devreg_t *device_register = (volatile devreg_t *)devAddrBase;
   unsigned int status;
-  unsigned int semNum = -1;
+  int semNum = -1;
 
   if (word != 4) {
     status = device_register->dtp.status;
@@ -81,8 +81,6 @@ void deviceInterrupt(unsigned int intlineNo) {
   } else {
     unsigned int tran_status = device_register->term.transm_status;
     unsigned int recv_status = device_register->term.recv_status;
-    // debug_print_hex(tran_status);
-    // debug_print_hex(recv_status);
     if ((tran_status & 0xFF) == 5) {
       status = tran_status;
       device_register->term.transm_command = ACK;
@@ -104,8 +102,8 @@ void deviceInterrupt(unsigned int intlineNo) {
     // da blocked a ready
     pcb->p_semAdd = NULL;
   } else {
+    (*semValue)++;
   }
-  // (*semValue)++; non serve a nulla
 
   unsigned int cpuNum = getPRID();
   if (currProc) {
@@ -123,6 +121,13 @@ void PLTInterrupt(void) {
   setTIMER(TIMESLICE);
   insertProcQ(&readyQueue, currProc);
   currProc = NULL;
+  cpu_t curr_time;
+  STCK(curr_time);
+  if (currProc != NULL) {
+    currProc->p_time += (curr_time - processTimer);
+    processTimer = curr_time;
+  }
+
   scheduler();
 }
 
@@ -136,7 +141,7 @@ void ITInterrupt(void) {
     softBlockCount--;
     insertProcQ(&readyQueue, pcb);
   }
-  subDevice[NRSEMAPHORES - 1] = 0; // ERA subDevice[48] = 0
+  subDevice[NRSEMAPHORES - 1] = 0;
   unsigned int cpuNum = getPRID();
   if (currProc) {
     STCK(processTimer);
