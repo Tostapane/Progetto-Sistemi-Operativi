@@ -185,7 +185,7 @@ void syscallHandler(void) {
     if (*sem == 0) {
       is_blocking = 1;
       currProc->p_s = *exception_state;
-      // currProc -> p_semAdd = sem;
+      currProc->p_semAdd = sem;
       insertBlocked(sem, currProc);
     } else {
       (*sem)--;
@@ -197,7 +197,7 @@ void syscallHandler(void) {
     unsigned int *sem = (unsigned int *)exception_state->reg_a1;
     if (*sem == 0 && headBlocked(sem)) {
       pcb_t *p = removeBlocked(sem);
-      // currProc -> p_semAdd = NULL;
+      currProc->p_semAdd = NULL;
       insertProcQ(&readyQueue, p);
     } else {
       (*sem)++;
@@ -243,7 +243,7 @@ void syscallHandler(void) {
     unsigned int *sem_ptr = &subDevice[index];
     // (*sem_ptr)--; non serve
     currProc->p_s = *exception_state; // nuovo
-                                      // currProc- > p_semadd?
+    currProc->p_semAdd = (int *)sem_ptr;
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -263,7 +263,7 @@ void syscallHandler(void) {
     unsigned int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
     // (*sem_ptr)--;
     currProc->p_s = *exception_state;
-    // currProc -> p_semAdd ?
+    currProc->p_semAdd = sem_ptr;
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
     is_blocking = 1;
@@ -309,6 +309,8 @@ void syscallHandler(void) {
     if (syscall_number <= 0) {
       // Se syscall_number < -10 o sconosciuta negativa, è una Trap (Privileged
       // Instruction)
+      //
+      // vi prego fateci qualcosa
       exception_state->cause = (exception_state->cause & ~CAUSE_EXCCODE_MASK) |
                                (PRIVINSTR << CAUSESHIFT);
       // IMPORTANTE: in questo caso specifico di errore,
@@ -484,7 +486,7 @@ void tlbHandler(void) {
 
   } else {
     recursive_terminate(currProc);
-    currProc = NULL;
+    currProc = NULL; // serve?
     scheduler();
   }
 }
