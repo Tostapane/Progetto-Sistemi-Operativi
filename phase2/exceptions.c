@@ -15,7 +15,9 @@ void *memcpy(void *dest, const void *src, int n) {
   }
   return dest;
 }
+
 /*
+TODO: dove metterla?
 void uTLB_RefillHandler() {
   setENTRYHI(0x80000000);
   setENTRYLO(0x00000000);
@@ -23,6 +25,7 @@ void uTLB_RefillHandler() {
   LDST((state_t *)BIOSDATAPAGE);
 }
 */
+
 /**
  * SEZIONE 5: Exception Handling
  *
@@ -31,29 +34,14 @@ void uTLB_RefillHandler() {
  * Questa funzione viene chiamata dal BIOS ogni volta che si verifica
  * un'eccezione (esclusi i TLB-Refill). Il suo compito è determinare la causa
  * dell'eccezione e delegare il lavoro al gestore appropriato.
- *
- * Istruzioni:
- * 1. Ottieni lo stato del processore salvato dal BIOS (`BIOSDATAPAGE`).
- * 2. Leggi il registro `Cause` da questo stato per capire il motivo
- * dell'eccezione.
- * 3. Usa la macro `CAUSE_IS_INT` per distinguere tra Interrupt e altre
- * eccezioni.
- *    - Se è un interrupt, chiama il gestore degli interrupt (`interruptHandler`
- * in interrupts.c).
- *    - Altrimenti, estrai l'Exception Code (`ExcCode`).
- * 4. In base all'Exception Code, chiama la funzione specifica:
- *    - `ExcCode` 8 o 11: chiama `syscallHandler()`.
- *    - `ExcCode` da 24 a 28 (TLB exceptions): chiama `tlbHandler()`.
- *    - Tutti gli altri `ExcCode` (Program Traps): chiama
- * `programTrapHandler()`.
  */
 void exceptionHandler(void) {
 
   // id del processore che ha causato l'eccezione
   unsigned int procsrID = getPRID();
 
-  // processor state at the time of the exception
-  // otteniamo un puntatore allo stato di quel processore
+  // Stato del processore al momento dell'eccezione
+  // Otteniamo un puntatore allo stato di quel processore
   state_t *exceptionState = GET_EXCEPTION_STATE_PTR(procsrID);
 
   // causa dello stato salvato
@@ -93,23 +81,6 @@ void exceptionHandler(void) {
  *
  * Questa funzione gestisce le richieste di servizi del Nucleo fatte dai
  * processi.
- *
- * Istruzioni:
- * 1. Controlla se la SYSCALL è stata chiamata da un processo in user-mode
- * (Sez. 6.11).
- *    - Se sì, e se il numero della SYSCALL (in `a0`) è negativo, simula
- * un'eccezione di tipo "Program Trap" (PRIVINSTR) e passa il controllo a
- * `programTrapHandler()`.
- * 2. Se il controllo dei privilegi passa, usa uno `switch` sul valore del
- * registro `a0` dello stato salvato per determinare quale SYSCALL eseguire (da
- * -1 a -10).
- * 3. Per ogni SYSCALL, implementa la logica descritta nella documentazione.
- * 4. Gestisci correttamente il ritorno dalla SYSCALL (Sez. 6.12):
- *    - Per chiamate non bloccanti: incrementa il PC di 4, metti il valore di
- * ritorno in `a0` dello stato salvato e fai `LDST` su quello stato.
- *    - Per chiamate bloccanti: salva lo stato nel PCB del processo (dopo aver
- * incrementato il PC), aggiorna il tempo di CPU, esegui l'azione bloccante e
- * chiama lo `scheduler()`.
  */
 void syscallHandler(void) {
   state_t *exception_state = GET_EXCEPTION_STATE_PTR(getPRID());
@@ -160,9 +131,12 @@ void syscallHandler(void) {
     break;
   }
 
-  // 6.2: TerminateProcess
+  // 6.2: TerminateProcess (Terminazione processo)
   case TERMPROCESS: {
 
+    // Se reg_a1 == 0, viene terminato il processo chiamante (currProc).
+    // Altrimenti, viene cercato e terminato il processo corrispondente al PID
+    // in reg_a1.
     pcb_t *target = (exception_state->reg_a1 == 0)
                         ? currProc
                         : find_pcb(exception_state->reg_a1);
@@ -181,7 +155,7 @@ void syscallHandler(void) {
 
   // 6.3: Passeren
   case PASSEREN: {
-    unsigned int *sem = (unsigned int *)exception_state->reg_a1;
+    int *sem = (int *)exception_state->reg_a1;
     if (*sem == 0) {
       is_blocking = 1;
       currProc->p_s = *exception_state;
@@ -194,7 +168,7 @@ void syscallHandler(void) {
   }
   // 6.4: Verhogen
   case VERHOGEN: {
-    unsigned int *sem = (unsigned int *)exception_state->reg_a1;
+    int *sem = (int *)exception_state->reg_a1;
     if (*sem == 0 && headBlocked(sem)) {
       pcb_t *p = removeBlocked(sem);
       currProc->p_semAdd = NULL;
@@ -205,8 +179,7 @@ void syscallHandler(void) {
     break;
   }
 
-    // 6.5: DoIO
-
+  // 6.5: DoIO
   case DOIO: {
 
     unsigned int cmd_addr = (unsigned int)exception_state->reg_a1;
@@ -240,9 +213,9 @@ void syscallHandler(void) {
       }
     }
 
-    unsigned int *sem_ptr = &subDevice[index];
-    // (*sem_ptr)--; non serve
-    currProc->p_s = *exception_state; // nuovo
+    int *sem_ptr = &subDevice[index];
+    // currProc->p_s viene aggiornato con lo stato corrente dell'eccezione
+    currProc->p_s = *exception_state;
     currProc->p_semAdd = (int *)sem_ptr;
     insertBlocked(sem_ptr, currProc);
     softBlockCount++;
@@ -260,7 +233,7 @@ void syscallHandler(void) {
 
   // 6.7: WaitForClock
   case CLOCKWAIT: {
-    unsigned int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
+    int *sem_ptr = &subDevice[NRSEMAPHORES - 1];
     // (*sem_ptr)--;
     currProc->p_s = *exception_state;
     currProc->p_semAdd = sem_ptr;
@@ -307,12 +280,13 @@ void syscallHandler(void) {
              // logica precedente
 
     if (syscall_number <= 0) {
-      // Se syscall_number < -10 o sconosciuta negativa, è una Trap (Privileged
-      // Instruction)
-      //
-      // vi prego fateci qualcosa
+      // Se syscall_number < -10 o una syscall negativa sconosciuta, viene
+      // segnalata come Trap per istruzione privilegiata (Privileged
+      // Instruction) Generando l'Exception Code appropriato da inviare al
+      // programTrapHandler.
       exception_state->cause = (exception_state->cause & ~CAUSE_EXCCODE_MASK) |
                                (PRIVINSTR << CAUSESHIFT);
+
       // IMPORTANTE: in questo caso specifico di errore,
       // il PC non dovrebbe essere avanzato perché l'istruzione è illegale.
       exception_state->pc_epc -= WORDLEN;
@@ -402,12 +376,12 @@ static void recursive_terminate(pcb_t *proc) {
     // Prova a rimuoverlo dalla Ready Queue
     if (outProcQ(&readyQueue, proc) == NULL) {
       // Se non era in Ready, potrebbe essere bloccato
-      unsigned int *sem_addr =
+      int *sem_addr =
           proc->p_semAdd; // Salva l'indirizzo PRIMA di outBlocked
       if (outBlocked(proc) != NULL) {
         // Se era un semaforo di device o pseudo-clock, aggiorna softBlockCount
-        if ((sem_addr >= (unsigned int *)&subDevice[0] &&
-             sem_addr <= (unsigned int *)&subDevice[NRSEMAPHORES - 1])) {
+        if ((sem_addr >= (int *)&subDevice[0] &&
+             sem_addr <= (int *)&subDevice[NRSEMAPHORES - 1])) {
           softBlockCount--;
         }
       }
@@ -441,16 +415,32 @@ static void recursive_terminate(pcb_t *proc) {
  * passare il controllo al gestore di eccezioni del Livello di Supporto.
  */
 void programTrapHandler(void) {
+  // 1. Controlla se il processo corrente possiede una struttura di supporto
   support_t *support = currProc->p_supportStruct;
   if (support) {
+    // CASO "Pass Up": Il processo sa come gestire questa eccezione a livello
+    // utente.
     unsigned int cpuNum = getPRID();
+
+    // Salva lo stato al momento dell'eccezione nella struttura di supporto
+    // (area GENERALEXCEPT)
     support->sup_exceptState[GENERALEXCEPT] =
         *(GET_EXCEPTION_STATE_PTR(cpuNum));
+
+    // Recupera il contesto (stack, status, pc) specificato per la gestione
+    // dell'eccezione
     context_t exeptCon = support->sup_exceptContext[GENERALEXCEPT];
+
+    // Salva il tempo, preparandosi al context switch in user mode
     STCK(processTimer);
+
+    // Passa il controllo all'handler definito dall'utente caricandone il
+    // contesto
     LDCXT(exeptCon.stackPtr, exeptCon.status, exeptCon.pc);
 
   } else {
+    // CASO "Die": Il processo non ha una struttura di supporto per sopravvivere
+    // alla trap. Viene terminato assieme a tutta la sua progenie.
     recursive_terminate(currProc);
     currProc = NULL; // serve?
     scheduler();
@@ -464,27 +454,33 @@ void programTrapHandler(void) {
  *
  * Gestisce errori di traduzione degli indirizzi. Implementa la logica "Pass Up
  * or Die".
- *
- * Istruzioni:
- * 1. La logica è quasi identica a `programTrapHandler`.
- * 2. L'unica differenza è che, nel caso "Pass Up", devi usare gli indici
- * `PGFAULTEXCEPT` invece di `GENERALEXCEPT` per accedere ai campi
- * `sup_exceptState` e `sup_exceptContext`. a. Copia lo stato d'eccezione in
- * `sup_exceptState[PGFAULTEXCEPT]`. b. Esegui `LDCXT` con il contesto
- * `sup_exceptContext[PGFAULTEXCEPT]`.
  */
-
 void tlbHandler(void) {
+  // 1. Verifica se è configurato un Support Level
   support_t *support = currProc->p_supportStruct;
   if (support) {
+    // CASO "Pass Up": Il livello di supporto o l'OS ha un gestore per il Page
+    // Fault.
     unsigned int cpuNum = getPRID();
+
+    // Salva lo stato d'eccezione specifico per le anomalie paginazione
+    // (PGFAULTEXCEPT)
     support->sup_exceptState[PGFAULTEXCEPT] =
         *(GET_EXCEPTION_STATE_PTR(cpuNum));
+
+    // Estrae il contesto per mandare in esecuzione la routine di supporto
+    // salvata
     context_t exeptCon = support->sup_exceptContext[PGFAULTEXCEPT];
+
+    // Aggiorna il timing per lo scheduler
     STCK(processTimer);
+
+    // Lancia e salta al gestore TLB del Support Level
     LDCXT(exeptCon.stackPtr, exeptCon.status, exeptCon.pc);
 
   } else {
+    // CASO "Die": Senza modulo di supporto l'unica opzione è terminare e
+    // rimuovere il processo per un errore irrimediabile.
     recursive_terminate(currProc);
     currProc = NULL; // serve?
     scheduler();

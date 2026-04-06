@@ -1,7 +1,7 @@
 #ifndef PANDOS_EXCEPTIONS_H
 #define PANDOS_EXCEPTIONS_H
 
-#include "../../../uriscv-latest/src/include/uriscv/cpu.h"
+// #include "../../../uriscv-latest/src/include/uriscv/cpu.h"
 #include "../../headers/const.h"
 #include "../../headers/types.h"
 #include "../../phase1/headers/asl.h"
@@ -10,36 +10,7 @@
 #include "./scheduler.h"
 #include "initial.h"
 #include <uriscv/liburiscv.h>
-
-// SEZIONE 2.1: Dichiarazione delle variabili globali del Nucleo
-
-/**
- * @brief Conteggio dei processi avviati ma non ancora terminati.
- * Incrementato da `CreateProcess`, decrementato durante la terminazione.
- */
-// extern unsigned int processCount;
-
-/**
- * @brief Conteggio dei processi bloccati in attesa di I/O o del timer
- * (soft-blocked). Incrementato quando un processo si blocca su un semaforo di
- * device/timer, decrementato quando viene sbloccato o terminato.
- */
-// extern unsigned int softBlockCount;
-
-/**
- * @brief Coda dei processi pronti per essere eseguiti (in stato "ready").
- * Gestita dallo scheduler e dalle funzioni che sbloccano i processi.
- */
-// extern struct list_head readyQueue;
-
-/**
- * @brief Array dei semafori per i dispositivi e per il pseudo-clock.
- * L'indice del semaforo corrisponde a un device specifico.
- * Dimensione: 48 (device) + 1 (pseudo-clock) = 49.
- * L'ordine è: 8 dischi, 8 flash, 8 network, 8 stampanti, 8 terminali
- * (ricezione), 8 terminali (trasmissione), 1 pseudo-clock.
- */
-// int dev_semaphores[TOT_DEV_SEM];
+#include <uriscv/cpu.h>
 
 /**
  * @brief Punto di ingresso principale per la gestione di tutte le eccezioni.
